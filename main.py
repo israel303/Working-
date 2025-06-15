@@ -29,8 +29,21 @@ async def set_thumbnail_command(message: types.Message):
     await message.reply("📸 שלח עכשיו את התמונה שברצונך להגדיר כ-thumbnail.")
     await ThumbnailState.waiting_for_photo.set()
 
-@dp.message_handler(state=ThumbnailState.waiting_for_photo, content_types=types.ContentType.PHOTO)
+@dp.message_handler(state=ThumbnailState.waiting_for_photo, content_types=types.ContentTypes.ANY)
 async def receive_thumbnail_photo(message: types.Message, state: FSMContext):
+    # ננסה לחלץ תמונה גם אם זה קובץ או תמונה רגילה
+    if message.photo:
+        photo = message.photo[-1]
+    elif message.document and message.document.mime_type.startswith("image/"):
+        photo = message.document
+    else:
+        await message.reply("⚠️ אנא שלח תמונה רגילה או קובץ תמונה.")
+        return
+
+    photo_path = f"thumbs/{message.from_user.id}.jpg"
+    await photo.download(destination_file=photo_path)
+    await message.reply("✅ התמונה נשמרה כ-thumbnail בהצלחה.")
+    await state.finish()
     photo = message.photo[-1]
     photo_path = f"thumbs/{message.from_user.id}.jpg"
     await photo.download(destination_file=photo_path)
